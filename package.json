@@ -26,7 +26,7 @@
     }
   ],
   "scripts": {
-    "start": "node_modules/.bin/seoserver -p 10300 start > seoserver.log",
+    "start": "node seoserver.js 10300 > seoserver.log &",
     "poststart": "echo $! > seoserver.pid",
     "stop": "kill `cat seoserver.pid`"
   }
