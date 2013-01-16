@@ -1,0 +1,33 @@
+{
+  "name": "mp.com.crawler",
+  "description": "SEO for our single-page app",
+  "version": "0.0.1",
+  "maintainers": [
+    {
+      "name": "Luis Merino",
+      "email": "luis@moviepilot.com"
+    }
+  ],
+  "contributors": [],
+  "dependencies": {
+    "seoserver": "1.1.6"
+  },
+  "devDependencies": {
+    "coffee-script": ""
+  },
+  "bugs": {
+    "mail": "frontend@moviepilot.com",
+    "web": "https://github.com/moviepilot/mp.com.crawler/issues"
+  },
+  "repositories": [
+    {
+      "type": "git",
+      "url": "https://github.com/moviepilot/mp.com.crawler.git"
+    }
+  ],
+  "scripts": {
+    "start": "node_modules/.bin/seoserver -p 10300 start > seoserver.log",
+    "poststart": "echo $! > seoserver.pid",
+    "stop": "kill `cat seoserver.pid`"
+  }
+}
