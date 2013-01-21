@@ -10,7 +10,8 @@
   ],
   "contributors": [],
   "dependencies": {
-    "seoserver": "1.1.6"
+    "seoserver": "1.1.6",
+    "memcached": "0.1.5"
   },
   "devDependencies": {
     "coffee-script": ""

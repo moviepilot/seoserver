@@ -1,10 +1,19 @@
+// Modules
 var express = require(__dirname + '/node_modules/seoserver/node_modules/express');
-var app = express();
+var Memcached = require('memcached');
+
+// Argument's preping.
 var arguments = process.argv.splice(2);
 var port = arguments[0] !== 'undefined' ? arguments[0] : 3000;
+
+// Express app
+var app = express();
+
+// Functions
 var getContent = function(url, callback) {
   var content = '';
   var phantom = require('child_process').spawn('phantomjs', [__dirname + '/node_modules/seoserver/lib/phantom-server.js', url]);
+
   phantom.stdout.setEncoding('utf8');
   phantom.stdout.on('data', function(data) {
     content += data.toString();
@@ -20,17 +29,67 @@ var getContent = function(url, callback) {
     }
   });
 };
-
-var respond = function (req, res) {
+var handler = function(req, res) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
-  var url = req.url;
-  var originalUrl = 'http://' + req.host + url;
-  console.log('url:', originalUrl);
-  getContent(originalUrl, function (content) {
-    res.send(content);
-  });
-}
 
-app.get(/(.*)/, respond);
+  var url = 'http://' + req.host + req.url;
+  var originalUrl = req.path;
+  var clearCache = req.query.plan === 'gold';
+
+  (function(u, o, c, r) {
+    var client = createClient(function(err) {
+      var key = 'moviepilot.com:' + u;
+
+      var afterGet = function(err, cachedContent) {
+        if (!err && !c && cachedContent) {
+          console.log('memcached:url: ' + u);
+          client.end();
+          r.send(cachedContent);
+        }
+        else {
+          console.log('url: ' + u);
+          getContent(u, function(content) {
+            // send the crawled content back
+            r.send(content);
+            // generate a unique key for memcached of this path (which
+            // includes the query string) store in memcached
+            if (!err) {
+              client.set(key, content, function() {
+                client.end();
+              });
+            }
+          });
+        }             
+      };
+
+      if (!err)
+        return client.get(key, afterGet);
+   
+      console.log('url: ' + u);
+      getContent(u, function(content) {
+        // send the crawled content back
+        response.send(content);
+      });
+    });
+  }(url, originalUrl, clearCache, res));
+};
+// Create a client and send messages across respectively.
+var createClient = function(callback) {
+  var client = new Memcached();
+
+  client.on('timeout', function() {
+    console.log('memcached: socked timed out.');
+  });
+
+  client.on('error', function(err) {
+    console.log('memcached: error', err);
+  });
+
+  client.connect('127.0.0.1:11211', callback);
+
+  return client;
+};
+
 app.listen(port);
+app.get(/(.*)/, handler);
