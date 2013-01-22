@@ -104,15 +104,9 @@ function createMemcachedClient(callback) {
   return client;
 }
 
-function ignoreFavicon(req, res, next) {
-  if (req.url === '/favicon.ico')
-    return next('route');
-
-  next();
-}
-
 // Express app
 var app = express();
 app.listen(10300);
 
-app.get(/(.*)/, ignoreFavicon, handler);
+app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
+app.get(/(.*)/, handler);
