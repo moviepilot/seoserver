@@ -1,5 +1,5 @@
 // Modules
-var express = require(__dirname + '/node_modules/seoserver/node_modules/express');
+var express = require('express');
 var Memcached = require('memcached');
 
 // Argument's preping.
@@ -12,20 +12,24 @@ var app = express();
 // Functions
 var getContent = function(url, callback) {
   var content = '';
-  var phantom = require('child_process').spawn('phantomjs', [__dirname + '/node_modules/seoserver/lib/phantom-server.js', url]);
+  var status = null;
+  var phantom = require('child_process').spawn('phantomjs', ['phantom-server.js', url]);
 
   phantom.stdout.setEncoding('utf8');
   phantom.stdout.on('data', function(data) {
-    content += data.toString();
+    if (data.indexOf('statuscode:') != -1)
+      status = parseInt(data.replace('statuscode:', ''), 10);
+    else
+      content += data.toString();
   });
   phantom.stderr.on('data', function (data) {
-  console.log('stderr: ' + data);
-});
+    console.log('stderr: ' + data);
+  });
   phantom.on('exit', function(code) {
     if (code !== 0) {
       console.log('We have an error');
     } else {
-      callback(content);
+      callback(content, status);
     }
   });
 };
@@ -49,12 +53,13 @@ var handler = function(req, res) {
         }
         else {
           console.log('url: ' + u);
-          getContent(u, function(content) {
+          getContent(u, function(content, status) {
             // send the crawled content back
+            r.status(status);
             r.send(content);
             // generate a unique key for memcached of this path (which
             // includes the query string) store in memcached
-            if (!err) {
+            if (!err && status == 200) {
               client.set(key, content, 0, function() {
                 client.end();
               });
@@ -67,9 +72,10 @@ var handler = function(req, res) {
         return client.get(key, afterGet);
 
       console.log('url: ' + u);
-      getContent(u, function(content) {
+      getContent(u, function(content, status) {
         // send the crawled content back
-        response.send(content);
+        r.status(status);
+        r.send(content);
       });
     });
   }(url, originalUrl, clearCache, res));
