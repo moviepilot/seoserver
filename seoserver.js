@@ -33,9 +33,9 @@ var handler = function(req, res) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-  var url = 'http://' + req.host + req.url;
+  var url = 'http://moviepilot.com' + req.url;
   var originalUrl = req.path;
-  var clearCache = req.query.plan === 'gold';
+  var clearCache = req.query.plan === 'titanium';
 
   (function(u, o, c, r) {
     var client = createClient(function(err) {
@@ -55,17 +55,17 @@ var handler = function(req, res) {
             // generate a unique key for memcached of this path (which
             // includes the query string) store in memcached
             if (!err) {
-              client.set(key, content, function() {
+              client.set(key, content, 0, function() {
                 client.end();
               });
             }
           });
-        }             
+        }
       };
 
       if (!err)
         return client.get(key, afterGet);
-   
+
       console.log('url: ' + u);
       getContent(u, function(content) {
         // send the crawled content back
@@ -92,4 +92,9 @@ var createClient = function(callback) {
 };
 
 app.listen(port);
-app.get(/(.*)/, handler);
+app.get(/(.*)/, function(req, res, next) {
+  if (req.url === '/favicon.ico')
+    next('route');
+  else
+    next();
+}, handler);
