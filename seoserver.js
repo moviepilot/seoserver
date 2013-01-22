@@ -4,8 +4,9 @@ var memcached = require('memcached');
 var phantom = require('phantom');
 // Argument's preping.
 var arguments = process.argv.splice(2);
-var port = arguments[0] !== 'undefined' ? arguments[0] : 11211;
-var host = arguments[1] !== 'undefined' ? arguments[1] : 'memcache-production'
+
+var port = arguments[0] !== undefined ? arguments[0] : 11211;
+var host = arguments[1] !== undefined ? arguments[1] : 'memcache-production'
 
 function getContent(url, callback) {
   phantom.create(function(ph) {
