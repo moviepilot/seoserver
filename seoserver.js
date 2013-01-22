@@ -89,7 +89,7 @@ function handler(req, res) {
 
 // Create a client and send messages across respectively.
 function createMemcachedClient(callback) {
-  var client = new memcached(host + ':11211');
+  var client = new memcached(host + ':' + port);
 
   client.on('timeout', function() {
     console.log('memcached: socked timed out.');
@@ -99,7 +99,7 @@ function createMemcachedClient(callback) {
     console.log('memcached: error', err);
   });
 
-  client.connect(host + ':11211', callback);
+  client.connect(host + ':' + port, callback);
 
   return client;
 }
@@ -113,6 +113,6 @@ function ignoreFavicon(req, res, next) {
 
 // Express app
 var app = express();
-app.listen(port);
+app.listen(10300);
 
 app.get(/(.*)/, ignoreFavicon, handler);
