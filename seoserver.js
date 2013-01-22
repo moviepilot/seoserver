@@ -10,20 +10,20 @@ var host = arguments[1] !== 'undefined' ? arguments[1] : 'memcached-production'
 function getContent(url, callback) {
   phantom.create(function(ph) {
     ph.createPage(function(page) {
-      var status = 200;
-      page.onResourceReceived = function(res) {
-      };
-      page.onResourceRequested = function(res) {
-      };
+      var statusCode = 500;
+      page.set('onResourceReceived', function(res) {
+        if (url === res.url && res.stage == 'end')
+          statusCode = res.status
+      });
       page.open(url, function(status) {
-        if (status !== 'success')
-          return callback(new Error(status));
+        if (statusCode >= 400 || status !== 'success')
+          return callback(new Error(statusCode + ' ' + status));
 
         setTimeout(function() {
           page.evaluate((function() {
             return document.documentElement.outerHTML;
           }), function(html) {
-            callback(html, status);
+            callback(html, statusCode);
             ph.exit();
           });
         }, 5000);
