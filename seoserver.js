@@ -1,39 +1,38 @@
 // Modules
 var express = require('express');
-var Memcached = require('memcached');
-
+var memcached = require('memcached');
+var phantom = require('phantom');
 // Argument's preping.
 var arguments = process.argv.splice(2);
-var port = arguments[0] !== 'undefined' ? arguments[0] : 3000;
+var port = arguments[0] !== 'undefined' ? arguments[0] : 11211;
+var host = arguments[1] !== 'undefined' ? arguments[1] : 'memcached-production'
 
-// Express app
-var app = express();
+function getContent(url, callback) {
+  phantom.create(function(ph) {
+    ph.createPage(function(page) {
+      var status = 200;
+      page.onResourceReceived = function(res) {
+      };
+      page.onResourceRequested = function(res) {
+      };
+      page.open(url, function(status) {
+        if (status !== 'success')
+          return callback(new Error(status));
 
-// Functions
-var getContent = function(url, callback) {
-  var content = '';
-  var status = null;
-  var phantom = require('child_process').spawn('phantomjs', ['phantom-server.js', url]);
+        setTimeout(function() {
+          page.evaluate((function() {
+            return document.documentElement.outerHTML;
+          }), function(html) {
+            callback(html, status);
+            ph.exit();
+          });
+        }, 5000);
+      });
+    });
+  });
+}
 
-  phantom.stdout.setEncoding('utf8');
-  phantom.stdout.on('data', function(data) {
-    if (data.indexOf('statuscode:') != -1)
-      status = parseInt(data.replace('statuscode:', ''), 10);
-    else
-      content += data.toString();
-  });
-  phantom.stderr.on('data', function (data) {
-    console.log('stderr: ' + data);
-  });
-  phantom.on('exit', function(code) {
-    if (code !== 0) {
-      console.log('We have an error');
-    } else {
-      callback(content, status);
-    }
-  });
-};
-var handler = function(req, res) {
+function handler(req, res) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
@@ -41,48 +40,56 @@ var handler = function(req, res) {
   var originalUrl = req.path;
   var clearCache = req.query.plan === 'titanium';
 
-  (function(u, o, c, r) {
-    var client = createClient(function(err) {
-      var key = 'moviepilot.com:' + u;
-
-      var afterGet = function(err, cachedContent) {
-        if (!err && !c && cachedContent) {
-          console.log('memcached:url: ' + u);
-          client.end();
-          r.send(cachedContent);
-        }
-        else {
-          console.log('url: ' + u);
-          getContent(u, function(content, status) {
-            // send the crawled content back
-            r.status(status);
-            r.send(content);
-            // generate a unique key for memcached of this path (which
-            // includes the query string) store in memcached
-            if (!err && status == 200) {
-              client.set(key, content, 0, function() {
-                client.end();
-              });
-            }
-          });
-        }
-      };
-
-      if (!err)
-        return client.get(key, afterGet);
-
-      console.log('url: ' + u);
-      getContent(u, function(content, status) {
-        // send the crawled content back
-        r.status(status);
-        r.send(content);
-      });
+  var memcachedClient = createMemcachedClient(function(err) {
+    var key = 'moviepilot.com:' + url;
+    var afterGet = function(err, cachedContent) {
+      if (!err && !clearCache && cachedContent) {
+        console.log('memcached:url: ' + url);
+        // Found no error, and no cache invaidation, so we send the content found
+        // in memcached back.
+        memcachedClient.end();
+        res.send(cachedContent);
+      }
+      else {
+        console.log('url: ' + url);
+        getContent(url, function(content, status) {
+          if (content instanceof Error) {
+            res.status(500);
+            return res.send(content.message);
+          }
+          // send the crawled content back
+          res.status(status);
+          res.send(content);
+          // generate a unique key for memcached of this path (which
+          // includes the query string) store in memcached
+          if (!err && status == 200) {
+            memcachedClient.set(key, content, 0, function() {
+              memcachedClient.end();
+            });
+          }
+        });
+      }
+    };
+    if (!err) {
+      // Success making a connection with Memcached server...
+      return memcachedClient.get(key, afterGet);
+    }
+    console.log('url: ' + url);
+    // Failsafe: ignore Memcache connection, just use the Phantom.js to server the content.
+    getContent(url, function(content, status) {
+      if (content instanceof Error) {
+        res.status(500);
+        return res.send(content.message);
+      }
+      res.status(status);
+      res.send(content);
     });
-  }(url, originalUrl, clearCache, res));
+  });
 };
+
 // Create a client and send messages across respectively.
-var createClient = function(callback) {
-  var client = new Memcached();
+function createMemcachedClient(callback) {
+  var client = new memcached(host + ':11211');
 
   client.on('timeout', function() {
     console.log('memcached: socked timed out.');
@@ -92,15 +99,20 @@ var createClient = function(callback) {
     console.log('memcached: error', err);
   });
 
-  client.connect('memcache-production:11211', callback);
+  client.connect(host + ':11211', callback);
 
   return client;
-};
+}
 
-app.listen(port);
-app.get(/(.*)/, function(req, res, next) {
+function ignoreFavicon(req, res, next) {
   if (req.url === '/favicon.ico')
-    next('route');
-  else
-    next();
-}, handler);
+    return next('route');
+
+  next();
+}
+
+// Express app
+var app = express();
+app.listen(port);
+
+app.get(/(.*)/, ignoreFavicon, handler);
