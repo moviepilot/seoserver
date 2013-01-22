@@ -86,7 +86,7 @@ var createClient = function(callback) {
     console.log('memcached: error', err);
   });
 
-  client.connect('127.0.0.1:11211', callback);
+  client.connect('memcache-production:11211', callback);
 
   return client;
 };
