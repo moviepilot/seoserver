@@ -5,7 +5,7 @@ var phantom = require('phantom');
 // Argument's preping.
 var arguments = process.argv.splice(2);
 var port = arguments[0] !== 'undefined' ? arguments[0] : 11211;
-var host = arguments[1] !== 'undefined' ? arguments[1] : 'memcached-production'
+var host = arguments[1] !== 'undefined' ? arguments[1] : 'memcache-production'
 
 function getContent(url, callback) {
   phantom.create(function(ph) {
@@ -37,7 +37,6 @@ function handler(req, res) {
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
   var url = 'http://moviepilot.com' + req.url;
-  var originalUrl = req.path;
   var clearCache = req.query.plan === 'titanium';
 
   var memcachedClient = createMemcachedClient(function(err) {
