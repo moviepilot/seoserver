@@ -17,8 +17,8 @@ function getContent(url, callback) {
           statusCode = res.status
       });
       page.open(url, function(status) {
-        if (statusCode >= 400 || status !== 'success')
-          return callback(new Error(statusCode + ' ' + status));
+        t = 5000
+        if (statusCode >= 400) t = 1
 
         setTimeout(function() {
           page.evaluate((function() {
@@ -27,7 +27,7 @@ function getContent(url, callback) {
             callback(html, statusCode);
             ph.exit();
           });
-        }, 5000);
+        }, t);
       });
     });
   });
@@ -53,16 +53,12 @@ function handler(req, res) {
       else {
         console.log('url: ' + url);
         getContent(url, function(content, status) {
-          if (content instanceof Error) {
-            res.status(500);
-            return res.send(content.message);
-          }
           // send the crawled content back
           res.status(status);
           res.send(content);
           // generate a unique key for memcached of this path (which
           // includes the query string) store in memcached
-          if (!err && status == 200) {
+          if (!err && status === 200) {
             memcachedClient.set(key, content, 0, function() {
               memcachedClient.end();
             });
@@ -77,10 +73,6 @@ function handler(req, res) {
     console.log('url: ' + url);
     // Failsafe: ignore Memcache connection, just use the Phantom.js to server the content.
     getContent(url, function(content, status) {
-      if (content instanceof Error) {
-        res.status(500);
-        return res.send(content.message);
-      }
       res.status(status);
       res.send(content);
     });
