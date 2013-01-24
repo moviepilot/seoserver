@@ -9,26 +9,29 @@ var port = arguments[0] !== undefined ? arguments[0] : 11211;
 var host = arguments[1] !== undefined ? arguments[1] : 'memcache-production'
 
 function getContent(url, callback) {
-  phantom.create(function(ph) {
-    ph.createPage(function(page) {
-      var statusCode = 500;
-      page.set('onResourceReceived', function(res) {
-        if (url === res.url && res.stage == 'end')
-          statusCode = res.status
-      });
-      page.open(url, function(status) {
-        t = 5000
-        if (statusCode >= 400) t = 1
+  phantomConn.createPage(function(page) {
+    var statusCode = 500;
+    var openingTime = 0;
+    var now = new Date().getTime()
 
-        setTimeout(function() {
-          page.evaluate((function() {
-            return document.documentElement.outerHTML;
-          }), function(html) {
-            callback(html, statusCode);
-            ph.exit();
-          });
-        }, t);
-      });
+    page.set('onResourceReceived', function(res) {
+      if (url === res.url && res.stage == 'end')
+        statusCode = res.status
+    });
+    page.open(url, function(status) {
+      t = 5000
+      if (statusCode >= 400) t = 1;
+      openingTime = (+new Date - now);
+      console.log('url: ' + url + ' - opening time: ' + openingTime + ' | ' + (openingTime / 1000).toFixed(2) + 's');
+
+      setTimeout(function() {
+        page.evaluate((function() {
+          return document.documentElement.outerHTML;
+        }), function(html) {
+          callback(html, statusCode);
+          //phantomConn.exit();
+        });
+      }, t);
     });
   });
 }
@@ -96,9 +99,37 @@ function createMemcachedClient(callback) {
   return client;
 }
 
+// Phantom instance
+var phantomConn = null;
 // Express app
-var app = express();
-app.listen(10300);
+var app = null;
 
-app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
-app.get(/(.*)/, handler);
+function main(){
+  phantom.create(function(ph) {
+    phantomConn = ph;
+    /*ph.set('onError', function(msg, trace) {
+      var msgStack = ['PHANTOM ERROR: ' + msg];
+      if (trace) {
+        msgStack.push('TRACE:');
+        trace.forEach(function(t) {
+            msgStack.push(' -> ' + (t.file || t.sourceURL) + ': ' + t.line + (t.function ? ' (in function ' + t.function + ')' : ''));
+        });
+      }
+      console.error(msgStack.join('\n'));
+      try
+        phantomConn.exit();
+        app.close()
+      catch err
+        console.log(err);
+      // Start the app again
+      main();
+    });*/
+
+    app = express()
+    app.listen(10300);
+    //app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
+    app.get(/(.*)/, handler);
+  });
+}
+
+main();
