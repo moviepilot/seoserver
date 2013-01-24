@@ -41,13 +41,14 @@ function handler(req, res) {
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
   var url = 'http://moviepilot.com' + req.url;
+  var uri = 'http://moviepilot.com' + req.path;
   var clearCache = req.query.plan === 'titanium';
 
   var memcachedClient = createMemcachedClient(function(err) {
-    var key = 'moviepilot.com:' + url;
+    var key = 'moviepilot.com:' + uri;
     var afterGet = function(err, cachedContent) {
       if (!err && !clearCache && cachedContent) {
-        console.log('memcached:url: ' + url);
+        console.log('memcached:uri: ' + uri);
         // Found no error, and no cache invaidation, so we send the content found
         // in memcached back.
         memcachedClient.end();
@@ -63,6 +64,7 @@ function handler(req, res) {
           // includes the query string) store in memcached
           if (!err && status === 200) {
             memcachedClient.set(key, content, 0, function() {
+              console.log('memcached key stored: ' + uri);
               memcachedClient.end();
             });
           }
