@@ -51,6 +51,7 @@ function handler(req, res) {
   var memcachedClient = createMemcachedClient(function(err) {
     var key = 'moviepilot.com:' + uri;
     var afterGet = function(err, cachedContent) {
+      if (err) console.log('memcached:error: ' + err);
       if (!err && !clearCache && cachedContent) {
         console.log('memcached:uri: ' + uri);
         // Found no error, and no cache invaidation, so we send the content found
@@ -59,7 +60,6 @@ function handler(req, res) {
         res.send(cachedContent);
       }
       else {
-        console.log('url: ' + url);
         getContent(url, function(content, status) {
           // send the crawled content back
           res.status(status);
