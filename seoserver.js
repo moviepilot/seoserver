@@ -23,7 +23,7 @@ function getContent(url, callback) {
         statusCode = res.status
     });
     page.open(url, function(status) {
-      t = 5000
+      t = 4000
       if (statusCode >= 400) t = 1;
       openingTime = (+new Date - now);
       console.log('url: ' + url + ' - opening time: ' + openingTime + ' | ' + (openingTime / 1000).toFixed(2) + 's');
@@ -116,6 +116,8 @@ function main(){
 
     app = express()
     app.listen(10300);
+
+    //app.use(express.static('/Users/luismerino/dev/mp.com/public/assets'));
     app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
     app.get(/(.*)/, handler);
   });
