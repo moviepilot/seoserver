@@ -13,6 +13,10 @@ function getContent(url, callback) {
     var statusCode = 500;
     var openingTime = 0;
     var now = new Date().getTime()
+    // 'close' only introduced in Phantom.js 1.7+
+    var closeMethod = 'close';
+    if (!(typeof page.close === 'function'))
+      closeMethod = 'release';
 
     page.set('onResourceReceived', function(res) {
       if (url === res.url && res.stage == 'end')
@@ -29,7 +33,7 @@ function getContent(url, callback) {
           return document.documentElement.outerHTML;
         }), function(html) {
           callback(html, statusCode);
-          //phantomConn.exit();
+          page[closeMethod]();
         });
       }, t);
     });
@@ -109,27 +113,10 @@ var app = null;
 function main(){
   phantom.create(function(ph) {
     phantomConn = ph;
-    /*ph.set('onError', function(msg, trace) {
-      var msgStack = ['PHANTOM ERROR: ' + msg];
-      if (trace) {
-        msgStack.push('TRACE:');
-        trace.forEach(function(t) {
-            msgStack.push(' -> ' + (t.file || t.sourceURL) + ': ' + t.line + (t.function ? ' (in function ' + t.function + ')' : ''));
-        });
-      }
-      console.error(msgStack.join('\n'));
-      try
-        phantomConn.exit();
-        app.close()
-      catch err
-        console.log(err);
-      // Start the app again
-      main();
-    });*/
 
     app = express()
     app.listen(10300);
-    //app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
+    app.use(express.static('/home/moviepilot/apps/mp.com-production/current/public'));
     app.get(/(.*)/, handler);
   });
 }
