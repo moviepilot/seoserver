@@ -10,7 +10,6 @@ program
   .version('0.0.1')
   .option('-p, --port <location>', 'Specifiy a port to run on')
 
-
 program
   .command('start')
   .description('Starts up an SeoServer on default port 3000')
