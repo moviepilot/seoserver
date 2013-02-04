@@ -15,10 +15,11 @@ program
   .description('Starts up an SeoServer on default port 3000')
   .action(function () {
     var child = new (forever.Monitor)(__dirname + '/../lib/seoserver.js', {
-      options: [program.port]
+      options: [program.port],
+      'errFile': __dirname + '/../seoserver.log',
+      'outFile': __dirname + '/../seoserver.log'
     });
     child.start();
-    console.log(__dirname, 'SeoServer successfully started');
   });
 
 program.parse(process.argv);
