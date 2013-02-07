@@ -13,7 +13,7 @@ Seo Server runs <a href="http://phantomjs.org/">PhantomJs</a>(headless webkit br
 * In local env: <code>node lib/seoserver.js 10300 localhost 11211</code> which starts an Express server on port 10300 with memcached
 localhost:11211
 * In production environment:
-<code>bin/seoserver.js start -p 10300</code>
+<code>bin/seoserver start -p 10300</code>
 
 
 ### Internals
@@ -25,4 +25,4 @@ The code has several parts:
 
 **lib/seoserver.js** An express node server, accepting the bot's requests, poking memcached to check for already stored version, otherwise calling phantom-server to fetch the content and serving it back to the bot.
 
-**bin/seoserver.js** Forever-monitor script, for launching and monitoring the main process.
+**bin/seoserver** Forever-monitor script, for launching and monitoring the main process.
