@@ -10,19 +10,25 @@ Seo Server runs <a href="http://phantomjs.org/">PhantomJs</a>(headless webkit br
 ### Getting started
 * Install npm dependencies <br/>
 <code>sudo npm install -g seoserver</code>
-* In local env: <code>node lib/seoserver.js 10300 localhost 11211</code> which starts an Express server on port 10300 with memcached
-localhost:11211
-* In production environment:
+* Start the main process on port 10300 and with default memcached conf:<br/>
 <code>bin/seoserver start -p 10300</code>
 
 
 ### Internals
-The code has several parts:
+The crawler has three parts:
 
-**lib/phantom-server.js** A small js file loaded into PhantomJS, for fetching the webpage, and returning the response along with the headers in serialized form. Can be executed via:
+**lib/phantom-server.js** A small js file loaded into PhantomJS, for grabbing the webpage and returning the response along with the headers in serialized form. Can be executed via:
 
 <code>phantomjs lib/phantom-server.js http://moviepilot.com/stories</code>
 
-**lib/seoserver.js** An express node server, accepting the bot's requests, poking memcached to check for already stored version, otherwise calling phantom-server to fetch the content and serving it back to the bot.
+**lib/seoserver.js** An express node server, accepting the requests, poking memcached for a cached version of the page, otherwise calling phantom-server.js to fetch the content and return the response. You can start it locally by:
+
+<code>node lib/seoserver.js 10300 \<memcached-host\></code>
+
+And test it by:
+
+<code>curl -v http://localhost:10300/stories</code>
 
 **bin/seoserver** Forever-monitor script, for launching and monitoring the main process.
+
+<code>bin/seoserver start -p 10300</code>
