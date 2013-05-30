@@ -32,3 +32,9 @@ And test its output with:
 **bin/seoserver** Forever-monitor script, for launching and monitoring the node main process.
 
 <code>bin/seoserver start -p 10300</code>
+
+### Credits
+
+This code is based on a [tutorial by Thomas Davis](http://backbonetutorials.com/seo-for-single-page-apps/) and on https://github.com/apiengine/seoserver
+
+
