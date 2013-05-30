@@ -6,6 +6,8 @@ Seo Server is a command line tool that runs a server that allows GoogleBot (and 
 * Add your configuration into `src/seoserver.coffee` (domain, memcached, logentries)
 * Install npm dependencies <br/>
 <code>npm install</code>
+* Install PhantomJS <br/>
+<code>npm install -g phantomjs</code>
 * Start the main process on port 10300 and with default memcached conf:<br/>
 <code>bin/seoserver start -p 10300</code>
 
