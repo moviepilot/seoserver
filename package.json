@@ -1,5 +1,5 @@
 {
-  "name": "mp.com.crawler",
+  "name": "seoserver",
   "version": "0.0.1",
   "main": "lib/seoserver",
   "bin": {
@@ -11,13 +11,13 @@
     "express": "~3.0.0rc4",
     "memcached": "0.1.5",
     "node-logentries": "0.0.2",
-    "q": "0.9.4",
+    "jquery": "1.8.3",
     "underscore": "1.4.4"
   },
   "repositories": [
     {
       "type": "git",
-      "url": "https://github.com/moviepilot/mp.com.crawler.git"
+      "url": "https://github.com/moviepilot/seoserver"
     }
   ]
 }

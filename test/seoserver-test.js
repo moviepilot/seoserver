@@ -1,8 +1,6 @@
-// Node.js tests
+// Here will be teh specs :)
 var buster = require("buster");
-
 var Seoserver = require('../lib/seoserver');
-
 var http = require('http');
 
 buster.testCase("A module", {
@@ -10,11 +8,11 @@ buster.testCase("A module", {
       this.timeout = 30000;
     },
 
-    "states the obvious": function (done) {
-      server = new Seoserver({ memcached: {enabled: false}})
+    "fetches /stories from mp.com": function (done) {
+      server = new Seoserver({ memcached: {enabled: false}});
       server.start().done(function() {
         http.get("http://localhost:10300/stories", function(res) {
-          console.log("Got response: " + res.statusCode);
+          assert.equals(res.statusCode, 200);
           done();
         }).on('error', function(e) {
           console.log("Got error: " + e.message);

@@ -22,8 +22,7 @@ class SeoServer
 
   constructor: (config = {}) ->
     @config = _.defaults(config, @defaultConfig)
-    console.log("Config: ", @config)
-
+    console.log("Launching with config: ", @config)
 
   start: =>
     dfd = $.Deferred()
@@ -31,10 +30,10 @@ class SeoServer
     memcached = @initMemcached()
 
     memcached.fail (error) ->
-      console.log(error)
+      console.log "Got memcached connection error #{error}"
 
     memcached.done (connection) =>
-      console.log "Connected to memcached"
+      console.log "Connected to memcached."
 
     memcached.always =>
       console.log("Express server started at port #{@config.defaultPort}")
@@ -44,7 +43,6 @@ class SeoServer
       dfd.resolve()
 
     dfd.promise()
-
 
   responseHandler: (request, response) =>
     @timer = 0
@@ -59,7 +57,6 @@ class SeoServer
         console.log "Redirecting to #{headers.location}..."
         response.send('')
       else
-        console.log("Got response:", content)
         response.send(content)
 
   fetchPage: (request, response) ->
@@ -71,16 +68,18 @@ class SeoServer
     else
       fetchDfd = @fetchFromPhantom(url)
 
-    fetchDfd.fail ->
-      dfd.reject()
+    fetchDfd.fail -> dfd.reject()
 
-    fetchDfd.done (url, response, headers, content) =>
+    fetchDfd.done (url, headers, content) =>
+      # we should only store non cached content here
       @storeResponseInCache(request, headers, content)
-      dfd.resolve(url, response, headers, content)
+      dfd.resolve(url, headers, content)
 
     dfd.promise()
 
   storeResponseInCache: (request, headers, content) =>
+
+    console.log("Storing in memcached")
     return unless @memcachedClient
     if headers.status is 301
       content = "301 #{headers.location}"
@@ -91,8 +90,6 @@ class SeoServer
     if headers.status >= 200 and (headers.status < 300 or headers.status in [ 301, 302 ])
       @memcachedClient.set key, content, 0, (err) ->
         console.log err
-
-
 
   fetchFromMemcached: (request) ->
     dfd = $.Deferred()
@@ -107,9 +104,9 @@ class SeoServer
         headers = {}
         if /^301/.test(cachedContent)
           matches = cachedContent.match(/\s(.*)$/)
-          response.status(301)
+          headers.status = 301
           headers.location = matches[1]
-        dfd.resolve(url, response, headers, cachedContent)
+        dfd.resolve(url, headers, cachedContent)
       else
         phantomRequest = @fetchFromPhantom(url)
         phantomRequest.done dfd.resolve
@@ -133,7 +130,7 @@ class SeoServer
       data = data.toString()
       if match = data.match(/({.*?})\n\n/)
         responseHeaders = JSON.parse(match[1])
-        console.log "Response headers from phantom:", responseHeaders
+        #console.log "Response headers from phantom:", responseHeaders
         headers.status = responseHeaders.status if responseHeaders.status
         headers.location = responseHeaders.redirectURL if responseHeaders.status is 301
         # Strip processed headers from stream
@@ -185,10 +182,8 @@ class SeoServer
 
     client.connect server, (error, connection) =>
       if error
-        console.log "Got connection error #{error}"
         dfd.reject(error)
       else
-        console.log "Connected to memcached."
         @memcachedClient = client
         dfd.resolve()
 
@@ -201,8 +196,17 @@ class SeoServer
     else
       'GoogleBot'
 
+  # We chose to remove all script tags,
+  # otherwise if/when google bot will start to parse js
+  # it will lead to duplicate renderings of the page.
   removeScriptTags: (content) ->
     content.replace(/<script[\s\S]*?<\/script>/gi, '')
 
 module.exports = SeoServer
+
+# For starting via command line
+args = process.argv.splice(2)
+if args?[0] is 'start'
+  seoserver = new SeoServer()
+  seoserver.start()
 
