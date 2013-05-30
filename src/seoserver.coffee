@@ -21,37 +21,53 @@ class SeoServer
       token: '25ebab68-8d2f-4382-a28c-7ed0a3cd255e'
 
   constructor: (config = {}) ->
-
     @config = _.defaults(config, @defaultConfig)
+    console.log("Config: ", @config)
 
-    #@initLogentries()
+
+  start: =>
+    dfd = $.Deferred()
+
     memcached = @initMemcached()
 
     memcached.fail (error) ->
       console.log(error)
+
     memcached.done (connection) =>
       console.log "Connected to memcached"
 
     memcached.always =>
-      @startServer()
+      console.log("Express server started at port #{@config.defaultPort}")
+      @app = express()
+      @app.get(/(.*)/, @responseHandler)
+      @app.listen(@config.defaultPort)
+      dfd.resolve()
 
-  startServer: =>
-    console.log("Express server started at port #{@config.defaultPort}")
-    @app = express()
-    @app.get(/(.*)/, @responseHandler)
-    @app.listen(@config.defaultPort)
+    dfd.promise()
+
 
   responseHandler: (request, response) =>
     @timer = 0
     @now = +new Date()
-    @fetchPage(request, response).done @deliverResponse
+    @fetchPage(request, response).done (url, headers, content) =>
+      response.status(headers.status or 500)
+      response.header("Access-Control-Allow-Origin", "*")
+      response.header("Access-Control-Allow-Headers", "X-Requested-With")
+      if headers.location?
+        response.set('Location', headers.location)
+        # don't send body on redirection
+        console.log "Redirecting to #{headers.location}..."
+        response.send('')
+      else
+        console.log("Got response:", content)
+        response.send(content)
 
   fetchPage: (request, response) ->
     dfd = $.Deferred()
     url = @config.host + request.url
 
     if @memcachedClient
-      fetchDfd = @fetchFromMemcached(request, response)
+      fetchDfd = @fetchFromMemcached(request)
     else
       fetchDfd = @fetchFromPhantom(url)
 
@@ -76,19 +92,9 @@ class SeoServer
       @memcachedClient.set key, content, 0, (err) ->
         console.log err
 
-  deliverResponse: (url, response, headers, content) =>
-    response.status(headers.status or 500)
-    response.header("Access-Control-Allow-Origin", "*")
-    response.header("Access-Control-Allow-Headers", "X-Requested-With")
-    if headers.location?
-      response.set('Location', headers.location)
-      # don't send body on redirection
-      response.send('')
-    else
-      console.log(content)
-      response.send(content)
 
-  fetchFromMemcached: (request, response) ->
+
+  fetchFromMemcached: (request) ->
     dfd = $.Deferred()
     url = @config.host + request.url
     uri = @config.host + request.path
@@ -126,9 +132,10 @@ class SeoServer
     phantom.stdout.on 'data', (data) ->
       data = data.toString()
       if match = data.match(/({.*?})\n\n/)
-        response = JSON.parse(match[1])
-        headers.status = response.status unless headers.status
-        headers.location = response.redirectURL if response.status is 301
+        responseHeaders = JSON.parse(match[1])
+        console.log "Response headers from phantom:", responseHeaders
+        headers.status = responseHeaders.status if responseHeaders.status
+        headers.location = responseHeaders.redirectURL if responseHeaders.status is 301
         # Strip processed headers from stream
         data = data.replace(/(.*?)\n\n/, '')
       if data.match(/^\w*error/i)
@@ -147,11 +154,13 @@ class SeoServer
         dfd.fail(code)
       else
         content = @removeScriptTags(content)
-        dfd.resolve(url, {}, headers, content)
+        dfd.resolve(url, headers, content)
 
     dfd.promise()
 
   initMemcached: ->
+    console.log "Initializing memcached client"
+
     dfd = $.Deferred()
 
     unless @config.memcached.enabled
@@ -176,10 +185,13 @@ class SeoServer
 
     client.connect server, (error, connection) =>
       if error
+        console.log "Got connection error #{error}"
         dfd.reject(error)
       else
+        console.log "Connected to memcached."
         @memcachedClient = client
         dfd.resolve()
+
     dfd.promise()
 
   logResponse: ->
