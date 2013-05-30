@@ -17,8 +17,8 @@ class SeoServer
       connectRetries: 5
       key: 'moviepilot.com'
     logentries:
-      enabled: true
-      token: '25ebab68-8d2f-4382-a28c-7ed0a3cd255e'
+      enabled: false
+      token: 'YOUR_LOGENTRIES_TOKEN_HERE'
 
   constructor: (config = {}) ->
     @config = _.defaults(config, @defaultConfig)
@@ -46,15 +46,15 @@ class SeoServer
 
   responseHandler: (request, response) =>
     @timer = 0
-    @now = +new Date()
+    now = +new Date()
     @fetchPage(request, response).done (url, headers, content) =>
+      @logResponseStats(request, headers, (+new Date - now))
       response.status(headers.status or 500)
       response.header("Access-Control-Allow-Origin", "*")
       response.header("Access-Control-Allow-Headers", "X-Requested-With")
       if headers.location?
         response.set('Location', headers.location)
         # don't send body on redirection
-        console.log "Redirecting to #{headers.location}..."
         response.send('')
       else
         response.send(content)
@@ -78,8 +78,6 @@ class SeoServer
     dfd.promise()
 
   storeResponseInCache: (request, headers, content) =>
-
-    console.log("Storing in memcached")
     return unless @memcachedClient
     if headers.status is 301
       content = "301 #{headers.location}"
@@ -89,7 +87,7 @@ class SeoServer
 
     if headers.status >= 200 and (headers.status < 300 or headers.status in [ 301, 302 ])
       @memcachedClient.set key, content, 0, (err) ->
-        console.log err
+        console.log err if err
 
   fetchFromMemcached: (request) ->
     dfd = $.Deferred()
@@ -102,10 +100,12 @@ class SeoServer
         return dfd.reject("memcached error: #{error}")
       if cachedContent and not clearCache
         headers = {}
+        # We store 301's in memcached as well
         if /^301/.test(cachedContent)
           matches = cachedContent.match(/\s(.*)$/)
           headers.status = 301
           headers.location = matches[1]
+        headers.memcached = true
         dfd.resolve(url, headers, cachedContent)
       else
         phantomRequest = @fetchFromPhantom(url)
@@ -130,7 +130,7 @@ class SeoServer
       data = data.toString()
       if match = data.match(/({.*?})\n\n/)
         responseHeaders = JSON.parse(match[1])
-        #console.log "Response headers from phantom:", responseHeaders
+        # console.log "Response headers from phantom:", responseHeaders
         headers.status = responseHeaders.status if responseHeaders.status
         headers.location = responseHeaders.redirectURL if responseHeaders.status is 301
         # Strip processed headers from stream
@@ -189,12 +189,25 @@ class SeoServer
 
     dfd.promise()
 
-  logResponse: ->
-    # moved into helper
+  logResponseStats: (request, headers, time) ->
+    url = request.originalUrl
+    url = url.replace(/.*moviepilot\.com/, "")
+    status = if headers.memcached
+      "MEMCACHED"
+    else if headers.status
+      headers.status
+    else
+      "KILLED"
     crawler = if /RedSnapper/.test(request.headers['user-agent'])
       'Crawler'
     else
       'GoogleBot'
+
+    console.log crawler, status, "Time:", time + "ms", "|", (time / 1000).toFixed(2) + "s", url
+
+    if @config.logentries.enabled
+      if status is 503 or status is "KILLED"
+        log.err status: status, url: url
 
   # We chose to remove all script tags,
   # otherwise if/when google bot will start to parse js
