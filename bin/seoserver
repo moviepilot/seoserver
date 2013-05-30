@@ -14,7 +14,7 @@ program
   .command('start')
   .description('Starts up an SeoServer on default port 3000')
   .action(function () {
-    var child = new (forever.Monitor)(__dirname + '/../lib/seoserver.js', {
+    var child = new (forever.Monitor)(__dirname + '/../lib/run-seoserver.js', {
       options: [program.port],
       'errFile': __dirname + '/../seoserver.log',
       'outFile': __dirname + '/../seoserver.log'
