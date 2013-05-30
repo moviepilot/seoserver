@@ -30,7 +30,7 @@ class SeoServer
     memcached = @initMemcached()
 
     memcached.fail (error) ->
-      console.log "Got memcached connection error #{error}"
+      console.log "Got memcached connection error: #{error}"
 
     memcached.done (connection) =>
       console.log "Connected to memcached."
