@@ -40,20 +40,24 @@ them to the seoserver. A quite lazy way in doing so is looking for the
 string "bot" in the User-Agent-Header. In Nginx you can check the
 variable $http_user_agent and set the backend similar to this:
 
-<code>location / {
+```nginx
+location / {
   proxy_pass  http://defaultbackend;
   if ($http_user_agent ~* bot)  {
     proxy_pass  http://seoserver;
-}</code>
+}
+```
 
 If you deliver a cached version of your website with a reverse proxy 
 in front, you can do a similar check. A vcl example for Varnish: 
 
-<code>if (req.http.User-Agent ~ "bot") { 
+```nginx
+if (req.http.User-Agent ~ "bot") { 
 set req.http.UA-Type = "crawler"; 
 } else { 
 set req.http.UA-Type = "regular"; 
-}</code>
+}
+```
 
 ### Credits
 
