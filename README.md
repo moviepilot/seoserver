@@ -35,9 +35,9 @@ And test its output with:
 
 ### Nginx and Varnish configuration examples
 
-Your webserver has to detect incoming search engine requests in to route
-them to the seoserver. A quite lazy way in doing so is looking for the
-string "bot" in the User-Agent-Header. In Nginx you can check the
+Your webserver has to detect incoming search engine requests in order to
+route them to the seoserver. A quite lazy way in doing so is looking for
+the string "bot" in the User-Agent-Header. In Nginx you can check the
 variable $http_user_agent and set the backend similar to this:
 
 ```nginx
