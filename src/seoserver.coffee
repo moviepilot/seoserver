@@ -12,7 +12,7 @@ class SeoServer
     defaultPort: 10300
     memcached:
       enabled: true
-      defaultHost: 'localhost'
+      defaultHost: 'seo-memcache-production'
       defaultPort: 11211
       maxValue: 2097152
       connectRetries: 5
