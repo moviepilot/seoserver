@@ -3,6 +3,7 @@ memcached = require('memcached')
 $ = require('jquery')
 _ = require('underscore')
 logentries = require('node-logentries')
+querystring = require('querystring')
 
 class SeoServer
 
@@ -19,6 +20,10 @@ class SeoServer
     logentries:
       enabled: false
       token: 'YOUR_LOGENTRIES_TOKEN_HERE'
+    # By default GET params are being ignored.
+    # Add here any params to be included in the
+    # request to your server.
+    getParamWhitelist: [ 'page' ]
 
   constructor: (config = {}) ->
     @config = _.defaults(config, @defaultConfig)
@@ -62,7 +67,7 @@ class SeoServer
 
   fetchPage: (request, response) ->
     dfd = $.Deferred()
-    url = @config.host + request.url
+    url = @buildURL(request)
 
     if @memcachedClient
       fetchDfd = @fetchFromMemcached(request)
@@ -83,18 +88,29 @@ class SeoServer
     if headers.status is 301
       content = "301 #{headers.location}"
 
-    uri = @config.host + request.path
-    key = @config.memcached.key + uri
+    url = @buildURL(request)
+    key = @buildKey(url)
 
     if headers.status >= 200 and (headers.status < 300 or headers.status in [ 301, 302 ])
       @memcachedClient.set key, content, 0, (err) ->
         console.log err if err
 
+  buildURL: (request) ->
+    params = _(request.query).pick @defaultConfig.getParamWhitelist
+    if _(params).isEmpty()
+      @config.host + request.path
+    else
+      "#{@config.host}#{request.path}?#{querystring.stringify(params)}"
+
+  buildKey: (url) ->
+    "#{@config.memcached.key}:#{url}"
+
   fetchFromMemcached: (request) ->
     dfd = $.Deferred()
-    url = @config.host + request.url
-    uri = @config.host + request.path
-    key = @config.memcached.key + uri
+
+    url = @buildURL(request)
+    key = @buildKey(url)
+
     clearCache = request.query.plan is 'titanium'
     @memcachedClient.get key, (error, cachedContent) =>
       if error
@@ -192,8 +208,7 @@ class SeoServer
     dfd.promise()
 
   logResponseStats: (request, headers, time) ->
-    url = request.originalUrl
-    url = url.replace(/.*moviepilot\.com/, "")
+    url = @buildURL(request).replace(new RegExp("#{@defaultConfig.host}"), '')
     status = if headers.memcached
       "MEMCACHED"
     else if headers.status
