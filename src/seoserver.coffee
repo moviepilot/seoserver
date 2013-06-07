@@ -92,7 +92,7 @@ class SeoServer
     key = @buildKey(url)
 
     if headers.status >= 200 and (headers.status < 300 or headers.status in [ 301, 302 ])
-      @memcachedClient.set key, content, 0, (err) ->
+      @memcachedClient.set key, content, 259200, (err) ->
         console.log err if err
 
   buildURL: (request) ->
