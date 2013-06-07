@@ -123,6 +123,7 @@ class SeoServer
           headers.status = 301
           headers.location = matches[1]
         headers.memcached = true
+        headers.status = 200
         dfd.resolve(url, headers, cachedContent)
       else
         phantomRequest = @fetchFromPhantom(url)
