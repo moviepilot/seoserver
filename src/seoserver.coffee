@@ -50,6 +50,7 @@ class SeoServer
     @fetchPage(request, response).done (url, headers, content) =>
       @logResponseStats(request, headers, (+new Date - now))
       response.status(headers.status or 500)
+      response.header("Content-type", headers.contentType) if headers.contentType
       response.header("Access-Control-Allow-Origin", "*")
       response.header("Access-Control-Allow-Headers", "X-Requested-With")
       if headers.location?
@@ -133,6 +134,7 @@ class SeoServer
         # console.log "Response headers from phantom:", responseHeaders
         headers.status = responseHeaders.status if responseHeaders.status
         headers.location = responseHeaders.redirectURL if responseHeaders.status is 301
+        headers.contentType = responseHeaders["contentType"]
         # Strip processed headers from stream
         data = data.replace(/(.*?)\n\n/, '')
       if data.match(/^\w*error/i)
