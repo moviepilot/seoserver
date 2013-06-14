@@ -3,7 +3,8 @@ Seo Server is a command line tool that runs a server that allows GoogleBot (and 
 
 
 ### Getting started
-* Add your configuration into `src/seoserver.coffee` (domain, memcached, logentries)
+* Edit configuration file `src/config.coffee.sample` and save it as
+`src/config.coffee`
 * Install npm dependencies <br/>
 <code>npm install</code>
 * Install PhantomJS <br/>
@@ -19,7 +20,7 @@ The crawler has three parts:
 
 <code>phantomjs lib/phantom-server.js http://moviepilot.com/stories</code>
 
-**lib/seoserver.js** A node express app responsible for accepting the requests from Googlebot, checking if there is a cached version on memcached, otherwise fetching the page via `phantom-server.js`. 
+**lib/seoserver.js** A node express app responsible for accepting the requests from Googlebot, checking if there is a cached version on memcached, otherwise fetching the page via `phantom-server.js`.
 
 You can start it locally with:
 
@@ -48,14 +49,14 @@ location / {
 }
 ```
 
-If you deliver a cached version of your website with a reverse proxy 
-in front, you can do a similar check. A vcl example for Varnish: 
+If you deliver a cached version of your website with a reverse proxy
+in front, you can do a similar check. A vcl example for Varnish:
 
 ```nginx
-if (req.http.User-Agent ~ "bot") { 
-set req.http.UA-Type = "crawler"; 
-} else { 
-set req.http.UA-Type = "regular"; 
+if (req.http.User-Agent ~ "bot") {
+set req.http.UA-Type = "crawler";
+} else {
+set req.http.UA-Type = "regular";
 }
 ```
 

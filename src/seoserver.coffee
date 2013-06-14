@@ -4,29 +4,12 @@ $ = require('jquery')
 _ = require('underscore')
 logentries = require('node-logentries')
 querystring = require('querystring')
+defaultConfig = require('./config')
 
 class SeoServer
 
-  defaultConfig:
-    host: 'http://moviepilot.com'
-    defaultPort: 10300
-    memcached:
-      enabled: true
-      defaultHost: 'seo-memcache-production'
-      defaultPort: 11211
-      maxValue: 2097152
-      connectRetries: 5
-      key: 'moviepilot.com'
-    logentries:
-      enabled: false
-      token: 'YOUR_LOGENTRIES_TOKEN_HERE'
-    # By default GET params are being ignored.
-    # Add here any params to be included in the
-    # request to your server.
-    getParamWhitelist: [ 'page' ]
-
   constructor: (config = {}) ->
-    @config = _.defaults(config, @defaultConfig)
+    @config = _.defaults(config, defaultConfig)
     console.log("Launching with config: ", @config)
 
   start: =>
@@ -96,7 +79,7 @@ class SeoServer
         console.log err if err
 
   buildURL: (request) ->
-    params = _(request.query).pick @defaultConfig.getParamWhitelist
+    params = _(request.query).pick @config.getParamWhitelist
     if _(params).isEmpty()
       @config.host + request.path
     else
@@ -209,7 +192,7 @@ class SeoServer
     dfd.promise()
 
   logResponseStats: (request, headers, time) ->
-    url = @buildURL(request).replace(new RegExp("#{@defaultConfig.host}"), '')
+    url = @buildURL(request).replace(new RegExp("#{@config.host}"), '')
     status = if headers.memcached
       "MEMCACHED"
     else if headers.status
