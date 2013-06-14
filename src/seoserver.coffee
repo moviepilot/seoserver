@@ -15,22 +15,25 @@ class SeoServer
   start: =>
     dfd = $.Deferred()
 
-    memcached = @initMemcached()
+    @initLogentries() if @config.logentries.enabled
 
+    memcached = @initMemcached()
     memcached.fail (error) ->
       console.log "Got memcached connection error: #{error}"
-
     memcached.done (connection) =>
       console.log "Connected to memcached."
-
     memcached.always =>
-      console.log("Express server started at port #{@config.defaultPort}")
       @app = express()
       @app.get(/(.*)/, @responseHandler)
       @app.listen(@config.defaultPort)
+      console.log("Express server started at port #{@config.defaultPort}")
       dfd.resolve()
-
     dfd.promise()
+
+  initLogentries: ->
+    @log = logentries.logger
+      token: @config.logentries.token
+    console.log("Initialized logentries logger")
 
   responseHandler: (request, response) =>
     @timer = 0
@@ -114,7 +117,7 @@ class SeoServer
         phantomRequest.fail dfd.fail
     dfd.promise()
 
-  fetchFromPhantom: (url) ->
+  fetchFromPhantom: (url) =>
     dfd = $.Deferred()
     timeout = null
     headers = {}
@@ -127,7 +130,7 @@ class SeoServer
       phantom.kill()
     , 30000
 
-    phantom.stdout.on 'data', (data) ->
+    phantom.stdout.on 'data', (data) =>
       data = data.toString()
       if match = data.match(/({.*?})\n\n/)
         responseHeaders = JSON.parse(match[1])
@@ -139,7 +142,8 @@ class SeoServer
         data = data.replace(/(.*?)\n\n/, '')
       if data.match(/^\w*error/i)
         headers.status = 503
-        console.log "Phantom js error: " + data.toString()
+        console.log "js error: " + data.toString()
+        @logEntries url: url, phantomError: data.toString()
       else
         content += data.toString()
 
@@ -149,7 +153,7 @@ class SeoServer
     phantom.on 'exit', (code) =>
       clearTimeout(timeout)
       if code
-        console.log('Error on Phantomjs process')
+        console.log('Error on PhantomJS process')
         dfd.fail(code)
       else
         content = @removeScriptTags(content)
@@ -158,7 +162,7 @@ class SeoServer
     dfd.promise()
 
   initMemcached: ->
-    console.log "Initializing memcached client"
+    console.log "Launching memcached client"
 
     dfd = $.Deferred()
 
@@ -192,7 +196,8 @@ class SeoServer
     dfd.promise()
 
   logResponseStats: (request, headers, time) ->
-    url = @buildURL(request).replace(new RegExp("#{@config.host}"), '')
+    fullURL = @buildURL(request)
+    url = fullURL.replace(new RegExp("#{@config.host}"), '')
     status = if headers.memcached
       "MEMCACHED"
     else if headers.status
@@ -206,9 +211,12 @@ class SeoServer
 
     console.log crawler, status, "Time:", time + "ms", "|", (time / 1000).toFixed(2) + "s", url
 
-    if @config.logentries.enabled
-      if status is 503 or status is "KILLED"
-        log.err status: status, url: url
+    if status >= 400 or status is "KILLED"
+      @logEntries status: status, time: time, url: fullURL
+
+  logEntries: (payload) ->
+    return unless @config.logentries.enabled
+    @log.err payload
 
   # We chose to remove all script tags,
   # otherwise if/when google bot will start to parse js
