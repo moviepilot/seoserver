@@ -145,8 +145,10 @@ class SeoServer
         data = data.replace(/.*?--HEADERS-END--\n/g, '')
       if data.match(/^\w*error/i)
         headers.status = 503
-        console.log "js error: " + data.toString()
-        @logEntries url: url, phantomError: data.toString()
+        if @config.logentries.enabled
+          @logEntries url: url, phantomError: data.toString()
+        else
+          console.log "js error: " + data.toString()
       else
         content += data.toString()
 
