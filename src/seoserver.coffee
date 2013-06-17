@@ -132,17 +132,14 @@ class SeoServer
 
     phantom.stdout.on 'data', (data) =>
       data = data.toString()
-      # return in case of js error
-      return if headers.status is 503
-      # Match response headers
-      if match = data.match(/\n--HEADERS--\n({.*?})\n--HEADERS-END--\n/)
+      if match = data.match(/({.*?})\n\n/)
         responseHeaders = JSON.parse(match[1])
         # console.log "Response headers from phantom:", responseHeaders
         headers.status = responseHeaders.status if responseHeaders.status
         headers.location = responseHeaders.redirectURL if responseHeaders.status is 301
         headers.contentType = responseHeaders["contentType"]
         # Strip processed headers from stream
-        data = data.replace(/.*?--HEADERS-END--\n/g, '')
+        data = data.replace(/(.*?)\n\n/, '')
       if data.match(/^\w*error/i)
         headers.status = 503
         if @config.logentries.enabled
