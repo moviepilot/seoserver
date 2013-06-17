@@ -46,7 +46,8 @@ class SeoServer
       response.header("Access-Control-Allow-Headers", "X-Requested-With")
       if headers.location?
         response.set('Location', headers.location)
-        # don't send body on redirection
+      # don't send body on non 200
+      if response.status isnt 200
         response.send('')
       else
         response.send(content)
