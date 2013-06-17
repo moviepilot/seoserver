@@ -47,7 +47,7 @@ class SeoServer
       if headers.location?
         response.set('Location', headers.location)
       # don't send body on non 200
-      if response.status isnt 200
+      if headers.status isnt 200
         response.send('')
       else
         response.send(content)
@@ -148,7 +148,7 @@ class SeoServer
         else
           console.log "js error: " + data.toString()
       else
-        content += data.toString()
+        content += data
 
     phantom.stderr.on 'data', (data) ->
       console.log 'stderr: ' + data
