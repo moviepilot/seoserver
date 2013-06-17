@@ -148,7 +148,7 @@ class SeoServer
         else
           console.log "js error: " + data.toString()
       else
-        content += data
+        content += data.toString()
 
     phantom.stderr.on 'data', (data) ->
       console.log 'stderr: ' + data
