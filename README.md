@@ -37,8 +37,8 @@ And test its output with:
 ### Nginx and Varnish configuration examples
 
 Your webserver has to detect incoming search engine requests in order to
-route them to the seoserver. A quite lazy way in doing so is looking for
-the string "bot" in the User-Agent-Header. In Nginx you can check the
+route them to the seoserver. A way of doing so is looking for the string "bot" 
+in the User-Agent-Header, or by checking for Google's [escaped fragment](https://developers.google.com/webmasters/ajax-crawling/docs/specification). In Nginx you can check the
 variable $http_user_agent and set the backend similar to this:
 
 ```nginx
@@ -47,16 +47,19 @@ location / {
   if ($http_user_agent ~* bot)  {
     proxy_pass  http://seoserver;
 }
+location ~* escaped_fragment {
+  proxy_pass  http://seoserver;
+}
 ```
 
 If you deliver a cached version of your website with a reverse proxy
 in front, you can do a similar check. A vcl example for Varnish:
 
 ```nginx
-if (req.http.User-Agent ~ "bot") {
-set req.http.UA-Type = "crawler";
+if (req.http.User-Agent ~ "bot" || req.url ~ "escaped_fragment") {
+  set req.http.UA-Type = "crawler";
 } else {
-set req.http.UA-Type = "regular";
+  set req.http.UA-Type = "regular";
 }
 ```
 
