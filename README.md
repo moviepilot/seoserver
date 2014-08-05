@@ -3,8 +3,12 @@ Seo Server is a command line tool that runs a server that allows GoogleBot (and 
 
 
 ### Getting started
+* Install [CoffeeScript](http://coffeescript.org/) (if not already) <br/>
+<code>npm install -g coffee-script</code>
 * Edit configuration file `src/config.coffee.sample` and save it as
 `src/config.coffee`
+* Compile the config into project directory <br/>
+<code>coffee --output lib/ -c src/config.coffee</code>
 * Install npm dependencies <br/>
 <code>npm install</code>
 * Install PhantomJS <br/>

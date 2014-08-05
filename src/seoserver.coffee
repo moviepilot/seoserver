@@ -109,8 +109,9 @@ class SeoServer
           matches = cachedContent.match(/\s(.*)$/)
           headers.status = 301
           headers.location = matches[1]
+        else
+          headers.status = 200
         headers.memcached = true
-        headers.status = 200
         dfd.resolve(url, headers, cachedContent)
       else
         phantomRequest = @fetchFromPhantom(url)

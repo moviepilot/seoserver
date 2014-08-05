@@ -2,6 +2,7 @@
 var buster = require("buster");
 var Seoserver = require('../lib/seoserver');
 var http = require('http');
+var assert = buster.referee.assert;
 
 buster.testCase("A module", {
     setUp: function() {
